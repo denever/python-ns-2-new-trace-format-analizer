@@ -25,7 +25,7 @@
 ###########################################################################
 
 import sys
-from parser import Parser
+from parser import NS2NewTraceParser
 
 def save_lines_in(filename, lines):
     lost_pkg_tr = open(filename, 'w')
