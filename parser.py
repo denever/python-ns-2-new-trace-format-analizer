@@ -98,17 +98,28 @@ class NS2NewTraceParser:
         Returns a list with all mac destination (-Md) in the trace file
         example: print parser.get_all_mac_dst
         """
-        mac_dsts = []
-        line in self.input_lines:
+        sent_mac_dsts = []
+        recv_mac_dsts = []
+        drop_mac_dsts = []
+        
+        for line in self.input_lines:
             send_event_found = find_send_event.search(line)
             recv_event_found = find_recv_event.search(line)
+            drop_event_found = find_drop_event.search(line)
+            
             if send_event_found:
                 macdst = get_pkmac_dst.search(line)
-                mac_dsts.append(macdst.group(1))
+                sent_mac_dsts.append(macdst.group(1))
                 
             if recv_event_found:
                 macdst = get_pkmac_dst.search(line)
-                mac_dsts.append(macdst.group(1))
+                recv_mac_dsts.append(macdst.group(1))
+
+            if drop_event_found:
+                macdst = get_pkmac_dst.search(line)
+                drop_mac_dsts.append(macdst.group(1))
+
+        return (sent_mac_dsts, recv_mac_dsts, drop_mac_dsts)
 
     def count_recv_pkg_at_node(self, node_id):
         """
