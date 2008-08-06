@@ -1,3 +1,29 @@
+#! /usr/bin/env python
+# -*- Python -*-
+###########################################################################
+#                       Trace Analizer Example                            #
+#                        --------------------                             #
+#  copyright         (C) 2008  Giuseppe "denever" Martino                 #
+#  email                : denever@users.sf.net                            #
+###########################################################################
+###########################################################################
+#                                                                         #
+#   This program is free software; you can redistribute it and/or modify  #
+#   it under the terms of the GNU General Public License as published by  #
+#   the Free Software Foundation; either version 2 of the License, or     #
+#   (at your option) any later version.                                   #
+#                                                                         #
+#  This program is distributed in the hope that it will be useful,        #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of         #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          #
+#  GNU General Public License for more details.                           #
+#                                                                         #
+#  You should have received a copy of the GNU General Public License      #
+#  along with this program; if not, write to the Free Software            #
+#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA#
+#                                                                         #
+###########################################################################
+
 import sys
 from parser import Parser
 
@@ -49,5 +75,5 @@ if __name__ == '__main__':
             tmp = int(recv_pkg)
         print "Pkgs of flow " + str(flowid) + " were received in the correct sequence"
 
-    (sent_trace, ciao, miao) = parser.get_trace_maconly_pkgs()
+    (sent_trace, foo, bar) = parser.get_trace_maconly_pkgs()
     save_lines_in('unknown_macpkgs.txt',sent_trace)
