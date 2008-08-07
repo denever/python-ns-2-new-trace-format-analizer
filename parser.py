@@ -314,3 +314,137 @@ class NS2NewTraceParser:
                         drop_macpkg.append(line)
 
         return (sent_macpkg, recv_macpkg, drop_macpkg)
+
+    
+    def get_sent_bursts_per_flow(self, lvl = 'MAC'):
+        last_flowid = str()
+        last_time = float()
+        start_burst_times = {}
+        stop_burst_times = {}
+        
+        for line in self.input_lines:
+            send_event_found = find_send_event.search(line)
+            trac_lvl_found = get_trace_lvl.search(line)
+            if send_event_found != None and trac_lvl_found != None:
+                if trac_lvl_found.group(1) == lvl:
+                    flowid_found = get_pktip_flwid.search(line)
+                    time_found = get_event_time.search(line)
+                    if flowid_found != None and time_found != None:
+                        new_flowid = flowid_found.group(1)
+                        time = float(time_found.group(1))
+                        if new_flowid != last_flowid:
+                            if not start_burst_times.has_key(new_flowid):
+                                start_burst_times[new_flowid] = []
+
+                            start_burst_times[new_flowid].append(time)
+
+                            if not stop_burst_times.has_key(new_flowid):
+                                stop_burst_times[new_flowid] = []
+
+                            stop_burst_times[new_flowid].append(last_time)
+
+                            last_flowid = new_flowid
+                            last_time = time
+                            
+        return (start_burst_times, stop_burst_times)
+
+    def get_sent_bursts_per_node(self, lvl = 'MAC'):
+        last_nodeid = str()
+        last_time = float()
+        start_burst_times = {}
+        stop_burst_times = {}
+        
+        for line in self.input_lines:
+            send_event_found = find_send_event.search(line)
+            trac_lvl_found = get_trace_lvl.search(line)
+            if send_event_found != None and trac_lvl_found != None:
+                if trac_lvl_found.group(1) == lvl:
+                    nodeid_found = get_node_id.search(line)
+                    time_found = get_event_time.search(line)
+                    if nodeid_found != None and time_found != None:
+                        new_nodeid = nodeid_found.group(1)
+                        time = float(time_found.group(1))
+                        if new_nodeid != last_nodeid:
+                            if not start_burst_times.has_key(new_nodeid):
+                                start_burst_times[new_nodeid] = []
+
+                            start_burst_times[new_nodeid].append(time)
+
+                            if not stop_burst_times.has_key(new_nodeid):
+                                stop_burst_times[new_nodeid] = []
+
+                            stop_burst_times[new_nodeid].append(last_time)
+
+                            last_nodeid = new_nodeid
+                            last_time = time
+                            
+        return (start_burst_times, stop_burst_times)
+
+    def get_recv_bursts_per_flow(self, lvl = 'MAC'):
+        last_flowid = str()
+        last_time = float()
+        start_burst_times = {}
+        stop_burst_times = {}
+        
+        for line in self.input_lines:
+            recv_event_found = find_recv_event.search(line)
+            trac_lvl_found = get_trace_lvl.search(line)
+            if recv_event_found != None and trac_lvl_found != None:
+                if trac_lvl_found.group(1) == lvl:
+                    flowid_found = get_pktip_flwid.search(line)
+                    time_found = get_event_time.search(line)
+                    if flowid_found != None and time_found != None:
+                        new_flowid = flowid_found.group(1)
+                        time = float(time_found.group(1))
+                        if new_flowid != last_flowid:
+                            if not start_burst_times.has_key(new_flowid):
+                                start_burst_times[new_flowid] = []
+
+                            start_burst_times[new_flowid].append(time)
+
+                            if not stop_burst_times.has_key(new_flowid):
+                                stop_burst_times[new_flowid] = []
+
+                            stop_burst_times[new_flowid].append(last_time)
+
+                            last_flowid = new_flowid
+                            last_time = time
+                            
+        return (start_burst_times, stop_burst_times)
+
+    def get_recv_bursts_per_node(self, lvl = 'MAC'):
+        last_nodeid = str()
+        last_time = float()
+        start_burst_times = {}
+        stop_burst_times = {}
+        
+        for line in self.input_lines:
+            recv_event_found = find_recv_event.search(line)
+            trac_lvl_found = get_trace_lvl.search(line)
+            if recv_event_found != None and trac_lvl_found != None:
+                if trac_lvl_found.group(1) == lvl:
+                    nodeid_found = get_node_id.search(line)
+                    time_found = get_event_time.search(line)
+                    if nodeid_found != None and time_found != None:
+                        new_nodeid = nodeid_found.group(1)
+                        time = float(time_found.group(1))
+                        if new_nodeid != last_nodeid:
+                            if not start_burst_times.has_key(new_nodeid):
+                                start_burst_times[new_nodeid] = []
+
+                            start_burst_times[new_nodeid].append(time)
+
+                            if not stop_burst_times.has_key(new_nodeid):
+                                stop_burst_times[new_nodeid] = []
+
+                            stop_burst_times[new_nodeid].append(last_time)
+
+                            last_nodeid = new_nodeid
+                            last_time = time
+                            
+        return (start_burst_times, stop_burst_times)
+
+
+
+
+                            
