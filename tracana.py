@@ -77,3 +77,9 @@ if __name__ == '__main__':
 
     (sent_trace, foo, bar) = parser.get_trace_maconly_pkgs()
     save_lines_in('unknown_macpkgs.txt',sent_trace)
+
+    (start_bursts, stop_bursts) = parser.get_sent_bursts_per_node()
+
+    for nodeid in start_burst.keys():
+        for i in range(start_burst[nodeid]):
+            print "Node id tx start at ", start_burst[nodeid][i], "stop at", stop_burst[nodeid][i]

@@ -343,13 +343,13 @@ class NS2NewTraceParser:
 
                             start_burst_times[new_flowid].append(time)
 
-                            if not stop_burst_times.has_key(new_flowid):
-                                stop_burst_times[new_flowid] = []
+                            if not stop_burst_times.has_key(last_flowid):
+                                stop_burst_times[last_flowid] = []
 
-                            stop_burst_times[new_flowid].append(last_time)
+                            stop_burst_times[last_flowid].append(last_time)
 
-                            last_flowid = new_flowid
-                            last_time = time
+                        last_flowid = new_flowid
+                        last_time = time
                             
         return (start_burst_times, stop_burst_times)
 
@@ -380,14 +380,14 @@ class NS2NewTraceParser:
 
                             start_burst_times[new_nodeid].append(time)
 
-                            if not stop_burst_times.has_key(new_nodeid):
-                                stop_burst_times[new_nodeid] = []
+                            if not stop_burst_times.has_key(last_nodeid):
+                                stop_burst_times[last_nodeid] = []
 
-                            stop_burst_times[new_nodeid].append(last_time)
-
-                            last_nodeid = new_nodeid
-                            last_time = time
+                            stop_burst_times[last_nodeid].append(last_time)
                             
+                        last_nodeid = new_nodeid
+                        last_time = time
+                        
         return (start_burst_times, stop_burst_times)
 
     def get_recv_bursts_per_flow(self, lvl = 'MAC'):
@@ -417,13 +417,13 @@ class NS2NewTraceParser:
 
                             start_burst_times[new_flowid].append(time)
 
-                            if not stop_burst_times.has_key(new_flowid):
-                                stop_burst_times[new_flowid] = []
+                            if not stop_burst_times.has_key(last_flowid):
+                                stop_burst_times[last_flowid] = []
 
-                            stop_burst_times[new_flowid].append(last_time)
+                            stop_burst_times[last_flowid].append(last_time)
 
-                            last_flowid = new_flowid
-                            last_time = time
+                        last_flowid = new_flowid
+                        last_time = time
                             
         return (start_burst_times, stop_burst_times)
 
@@ -454,12 +454,12 @@ class NS2NewTraceParser:
 
                             start_burst_times[new_nodeid].append(time)
 
-                            if not stop_burst_times.has_key(new_nodeid):
-                                stop_burst_times[new_nodeid] = []
+                            if not stop_burst_times.has_key(last_nodeid):
+                                stop_burst_times[last_nodeid] = []
 
-                            stop_burst_times[new_nodeid].append(last_time)
-
-                            last_nodeid = new_nodeid
-                            last_time = time
+                            stop_burst_times[last_nodeid].append(last_time)
+                        
+                        last_nodeid = new_nodeid
+                        last_time = time
                             
         return (start_burst_times, stop_burst_times)
