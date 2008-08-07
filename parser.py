@@ -317,6 +317,11 @@ class NS2NewTraceParser:
 
     
     def get_sent_bursts_per_flow(self, lvl = 'MAC'):
+        """
+        Returns a tuple of two dictionaries mapping start and stop times per sent flowid.
+        It is possibile to select trace level (default is 'MAC')
+        example: (start_times, stop_times) = parser.get_sent_bursts_per_flow()
+        """
         last_flowid = str()
         last_time = float()
         start_burst_times = {}
@@ -349,6 +354,11 @@ class NS2NewTraceParser:
         return (start_burst_times, stop_burst_times)
 
     def get_sent_bursts_per_node(self, lvl = 'MAC'):
+        """
+        Returns a tuple of two dictionaries mapping start and stop times of pkg sent per nodeid.
+        It is possibile to select trace level (default is 'MAC')
+        example: (start_times, stop_times) = parser.get_sent_bursts_per_flow()
+        """
         last_nodeid = str()
         last_time = float()
         start_burst_times = {}
@@ -381,6 +391,11 @@ class NS2NewTraceParser:
         return (start_burst_times, stop_burst_times)
 
     def get_recv_bursts_per_flow(self, lvl = 'MAC'):
+        """
+        Returns a tuple of two dictionaries mapping start and stop times per received flowid.
+        It is possibile to select trace level (default is 'MAC')
+        example: (start_times, stop_times) = parser.get_sent_bursts_per_flow()
+        """
         last_flowid = str()
         last_time = float()
         start_burst_times = {}
@@ -413,6 +428,11 @@ class NS2NewTraceParser:
         return (start_burst_times, stop_burst_times)
 
     def get_recv_bursts_per_node(self, lvl = 'MAC'):
+        """
+        Returns a tuple of two dictionaries mapping start and stop times of pkg recv per nodeid.
+        It is possibile to select trace level (default is 'MAC')
+        example: (start_times, stop_times) = parser.get_sent_bursts_per_flow()
+        """
         last_nodeid = str()
         last_time = float()
         start_burst_times = {}
@@ -443,8 +463,3 @@ class NS2NewTraceParser:
                             last_time = time
                             
         return (start_burst_times, stop_burst_times)
-
-
-
-
-                            
