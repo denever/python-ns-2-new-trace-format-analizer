@@ -39,12 +39,12 @@ if __name__ == '__main__':
         print "usage tracana.py input_file"
         sys.exit(1)
     
-    parser = Parser(input_file)
+    parser = NS2NewTraceParser(input_file)
 
-    for flowid  in range(1,12):
+    for flowid  in range(0,12):
         print "Checking flow: ", flowid, "..."
-        (sent, recv) = parser.get_pkgs_flowid(str(flowid))
-
+        (sent, recv, drop) = parser.get_pkgs_flowid(str(flowid))
+        print len(sent), len(recv)
         if len(sent) != len(recv):
             print "Flow " + str(flowid) + " has lost pkgs!"
             print "Recv pkgs: ", len(sent)
@@ -77,9 +77,3 @@ if __name__ == '__main__':
 
     (sent_trace, foo, bar) = parser.get_trace_maconly_pkgs()
     save_lines_in('unknown_macpkgs.txt',sent_trace)
-
-    (start_bursts, stop_bursts) = parser.get_sent_bursts_per_node()
-
-    for nodeid in start_burst.keys():
-        for i in range(start_burst[nodeid]):
-            print "Node id tx start at ", start_burst[nodeid][i], "stop at", stop_burst[nodeid][i]
