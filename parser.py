@@ -360,7 +360,7 @@ class NS2NewTraceParser:
         example: (start_times, stop_times) = parser.get_sent_bursts_per_flow()
         """
         last_nodeid = str()
-        last_time = float()
+        last_time = str()
         start_burst_times = {}
         stop_burst_times = {}
         
@@ -373,7 +373,7 @@ class NS2NewTraceParser:
                     time_found = get_event_time.search(line)
                     if nodeid_found != None and time_found != None:
                         new_nodeid = nodeid_found.group(1)
-                        time = float(time_found.group(1))
+                        time = time_found.group(1)
                         if new_nodeid != last_nodeid:
                             if not start_burst_times.has_key(new_nodeid):
                                 start_burst_times[new_nodeid] = []
