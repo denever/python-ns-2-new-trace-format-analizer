@@ -33,28 +33,31 @@ find_drop_event = re.compile("^d")
 find_fwrd_event = re.compile("^t")
 
 get_event_time = re.compile("-t ([0-9.]*)")
-get_node_id = re.compile("-Ni (\d)")
-get_node_pos = re.compile("-Nx (\d) -Ny (\d) -Nz (\d)")
+get_node_id = re.compile("-Ni (\d+)")
+get_node_pos = re.compile("-Nx (\d+) -Ny (\d+) -Nz (\d+)")
 get_node_nrg = re.compile("-Ne (-[0-9.]*)")
 get_trace_lvl = re.compile("-Nl ([A-Z]+)")
 get_event_rsn = re.compile("-Nw ([A-Z]+)")
-get_pktip_src = re.compile("-Is ([0-9]+).([0-9]+)")
-get_pktip_dst = re.compile("-Id ([0-9]+).([0-9]+)")
+get_pktip_src = re.compile("-Is (\d+).(\d+)")
+get_pktip_dst = re.compile("-Id (\d+).(\d+)")
 get_pktip_type = re.compile("-It ([a-z]+)")
-get_pktip_size = re.compile("-Il ([0-9]+)")
-get_pktip_flwid = re.compile("-If ([0-9]+)")
-get_pktip_unqid = re.compile("-Ii ([0-9]+)")
-get_pktip_ttl = re.compile("-Iv ([0-9]+)")
-get_nxhop_sid = re.compile("-Hs ([0-9]+)")
-get_nxhop_did = re.compile("-Hd ([0-9]+)")
-get_pkmac_dur = re.compile("-Ma ([0-9]+)")
+get_pktip_size = re.compile("-Il (\d+)")
+get_pktip_flwid = re.compile("-If (\d+)")
+get_pktip_unqid = re.compile("-Ii (\d+)")
+get_pktip_ttl = re.compile("-Iv (\d+)")
+get_nxhop_sid = re.compile("-Hs (\d+)")
+get_nxhop_did = re.compile("-Hd (\d+)")
+get_pkmac_dur = re.compile("-Ma (\d+)")
 get_pkmac_dst = re.compile("-Md (\w+)")
 get_pkmac_src = re.compile("-Ms (\w+)")
-get_pkmac_type = re.compile("-Mt ([0-9]+)")
-get_pkapp_sqn = re.compile("-Pi ([0-9]+)")
-get_pkapp_fwd = re.compile("-Pf ([0-9]+)")
-get_pkapp_opt = re.compile("-Po ([0-9]+)")
+get_pkmac_type = re.compile("-Mt (\d+)")
+get_pkapp_sqn = re.compile("-Pi (\d+)")
+get_pkapp_fwd = re.compile("-Pf (\d+)")
+get_pkapp_opt = re.compile("-Po (\d+)")
 
+trace_lvl_agt = re.compile("-Nl AGT")
+trace_lvl_rtr = re.compile("-Nl RTR")
+trace_lvl_rtr = re.compile("-Nl MAC")
 
 class NS2NewTraceParser:
     """
@@ -66,6 +69,46 @@ class NS2NewTraceParser:
     """
     def __init__(self, input_file):
         self.input_lines = input_file.readlines()
+
+    def get_nodes(self):
+        node_ids = []
+        for line in self.input_lines:
+            node_id_found = get_node_id.search(line)
+            if node_id_found:
+                node_id = node_id_found.group(1)
+                if not node_id in node_ids:
+                    node_ids.append(node_id)
+        return node_ids
+
+    def get_flows(self):
+        flow_ids = []
+        for line in self.input_lines:
+            flow_id_found = get_pktip_flwid.search(line)
+            if flow_id_found:
+                flow_id = flow_id_found.group(1)
+                if not flow_id in flow_ids:
+                    flow_ids.append(flow_id)
+        return flow_ids
+        
+
+    def get_src_dst_per_flow(self):
+        src_dst = {}
+        for line in self.input_lines:
+            tracelvl_found = trace_lvl_agt.search(line)
+            flow_id_found = get_pktip_flwid.search(line)
+            src_found = get_pktip_src.search(line)
+            dst_found = get_pktip_dst.search(line)
+
+            if tracelvl_found and flow_id_found and src_found and dst_found:
+                flow_id = flow_id_found.group(1)
+                src = src_found.group(1)
+                dst = dst_found.group(1)
+                
+                if not src_dst.has_key(flow_id_found.group(1)):
+                    src_dst[flow_id] = (src, dst)
+                else:
+                    continue
+        return src_dst                        
 
     def get_pkg_iptypes(self):
         """
@@ -463,3 +506,4 @@ class NS2NewTraceParser:
                         last_time = time
                             
         return (start_burst_times, stop_burst_times)
+
