@@ -50,6 +50,46 @@ class Gui:
 	    dict[key] = getattr(self, key)
 	self.wtree.signal_autoconnect(dict)
 
+        self.tvw_nodes = self.wtree.get_widget('tvw_nodes')
+
+        tvc_nodes = gtk.TreeViewColumn('Id')
+        cell = gtk.CellRendererText()
+        tvc_nodes.pack_start(cell)
+        tvc_nodes.set_attributes(cell, text=0)
+        self.tvw_nodes.append_column(tvc_nodes)
+        self.node_list = gtk.ListStore(str)
+        self.tvw_nodes.set_model(self.node_list)
+        
+        self.tvw_flows = self.wtree.get_widget('tvw_flows')
+        
+        tvc_flowid = gtk.TreeViewColumn('FlowId')
+        tvc_src = gtk.TreeViewColumn('Source')
+        tvc_dst = gtk.TreeViewColumn('Destination')
+        tvc_type = gtk.TreeViewColumn('Type')
+
+        cel_flowid = gtk.CellRendererText()
+        cel_src = gtk.CellRendererText()
+        cel_dst = gtk.CellRendererText()
+        cel_type = gtk.CellRendererText()
+
+        tvc_flowid.pack_start(cel_flowid)
+        tvc_src.pack_start(cel_src)
+        tvc_dst.pack_start(cel_dst)
+        tvc_type.pack_start(cel_type)
+        
+        tvc_flowid.set_attributes(cel_flowid, text=0)
+        tvc_src.set_attributes(cel_src, text=1)
+        tvc_dst.set_attributes(cel_dst, text=2)
+        tvc_type.set_attributes(cel_type, text=3)
+        
+        self.tvw_flows.append_column(tvc_flowid)
+        self.tvw_flows.append_column(tvc_src)
+        self.tvw_flows.append_column(tvc_dst)
+        self.tvw_flows.append_column(tvc_type)
+        
+        self.flow_list = gtk.ListStore(str,str,str,str)
+        self.tvw_flows.set_model(self.flow_list)
+
     def on_mnuitm_open_activate(self, widget):
         self.wtree.get_widget('dlg_openfile').show()        
 
@@ -57,39 +97,29 @@ class Gui:
         self.wtree.get_widget('dlg_savefile').show()        
         
     def on_btn_open_clicked(self, widget):
+        self.wtree.get_widget('dlg_openfile').hide()
         filename = self.wtree.get_widget('dlg_openfile').get_filename()
         trace_file = open(filename,'r')
         self.parser = NS2NewTraceParser(trace_file)
         
-        tvw_nodes = self.wtree.get_widget('tvw_nodes')
-        tvc_nodes = gtk.TreeViewColumn('Id')
-        cell = gtk.CellRendererText()
-        tvc_nodes.pack_start(cell)
-        tvc_nodes.set_attributes(cell, text=0)
-        tvw_nodes.append_column(tvc_nodes)
-        node_list = gtk.ListStore(str)
-        tvw_nodes.set_model(node_list)
-
         for node_id in self.parser.get_nodes():
-            node_list.append([node_id])
+            self.node_list.append([node_id])
 
-        tvw_flows = self.wtree.get_widget('tvw_flows')
-        tvc_flows = gtk.TreeViewColumn('Id')
-        cell = gtk.CellRendererText()
-        tvc_flows.pack_start(cell)
-        tvc_flows.set_attributes(cell, text=0)
-        tvw_flows.append_column(tvc_flows)
-        flow_list = gtk.ListStore(str)
-        tvw_flows.set_model(flow_list)
+        flow_ids = self.parser.get_flows()
+        flow_ids.sort()
+        flow_src_dst = self.parser.get_src_dst_per_flow()
+        flow_types = self.parser.get_flow_types()
+        
+        for flow_id in flow_ids:
+            (src,dst) = flow_src_dst[flow_id]
+            flow_type = flow_types[flow_id]
+            row = flow_id,src,dst,flow_type
+            self.flow_list.append(row)
 
-        for flow_id in self.parser.get_flows():
-            flow_list.append([flow_id])
-            
-        self.wtree.get_widget('dlg_openfile').hide()
         self.wtree.get_widget('mnuitm_stats').show()
         
     def on_btn_open_cancel_clicked(self, widget):
-        print widget
+        self.wtree.get_widget('dlg_openfile').hide()
 
     def on_btn_save_cancel_clicked(self, widget):
         self.wtree.get_widget('dlg_savefile').hide()
@@ -97,9 +127,6 @@ class Gui:
     def on_mnuitm_exit_activate(self, widget):
         gtk.main_quit()
 
-
 if __name__ == "__main__":
     gui = Gui()
     main()
-
-
