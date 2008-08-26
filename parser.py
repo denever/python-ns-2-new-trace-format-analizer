@@ -33,11 +33,14 @@ find_drop_event = re.compile("^d")
 find_fwrd_event = re.compile("^t")
 
 get_event_time = re.compile("-t ([0-9.]*)")
+
 get_node_id = re.compile("-Ni (\d+)")
 get_node_pos = re.compile("-Nx (\d+) -Ny (\d+) -Nz (\d+)")
 get_node_nrg = re.compile("-Ne (-[0-9.]*)")
+
 get_trace_lvl = re.compile("-Nl ([A-Z]+)")
 get_event_rsn = re.compile("-Nw ([A-Z]+)")
+
 get_pktip_src = re.compile("-Is (\d+).(\d+)")
 get_pktip_dst = re.compile("-Id (\d+).(\d+)")
 get_pktip_type = re.compile("-It ([a-z]+)")
@@ -45,12 +48,16 @@ get_pktip_size = re.compile("-Il (\d+)")
 get_pktip_flwid = re.compile("-If (\d+)")
 get_pktip_unqid = re.compile("-Ii (\d+)")
 get_pktip_ttl = re.compile("-Iv (\d+)")
+
 get_nxhop_sid = re.compile("-Hs (\d+)")
 get_nxhop_did = re.compile("-Hd (\d+)")
+
 get_pkmac_dur = re.compile("-Ma (\d+)")
 get_pkmac_dst = re.compile("-Md (\w+)")
 get_pkmac_src = re.compile("-Ms (\w+)")
 get_pkmac_type = re.compile("-Mt (\d+)")
+
+get_pkapp_proto = re.compile('-Pn (\w+)')
 get_pkapp_sqn = re.compile("-Pi (\d+)")
 get_pkapp_fwd = re.compile("-Pf (\d+)")
 get_pkapp_opt = re.compile("-Po (\d+)")
@@ -58,6 +65,11 @@ get_pkapp_opt = re.compile("-Po (\d+)")
 trace_lvl_agt = re.compile("-Nl AGT")
 trace_lvl_rtr = re.compile("-Nl RTR")
 trace_lvl_rtr = re.compile("-Nl MAC")
+
+app_proto_arp = re.compile('-P arp')
+app_proto_dsr = re.compile('-P dsr')
+app_proto_cbr = re.compile('-P cbr')
+app_proto_tcp = re.compile('-P tcp')
 
 class NS2NewTraceParser:
     """
@@ -104,12 +116,30 @@ class NS2NewTraceParser:
                 src = src_found.group(1)
                 dst = dst_found.group(1)
                 
-                if not src_dst.has_key(flow_id_found.group(1)):
+                if not src_dst.has_key(flow_id):
                     src_dst[flow_id] = (src, dst)
                 else:
                     continue
         return src_dst                        
 
+    def get_flow_types(self):
+        flow_types = {}
+        for line in self.input_lines:
+            tracelvl_found = trace_lvl_agt.search(line)
+            flow_id_found = get_pktip_flwid.search(line)
+            pktapp_proto_found = get_pkapp_proto.search(line)
+
+            if tracelvl_found and flow_id_found and pktapp_proto_found:
+                flow_id = flow_id_found.group(1)
+                app_proto = pktapp_proto_found.group(1)
+                
+                if not flow_types.has_key(flow_id):
+                    flow_types[flow_id] = app_proto
+                else:
+                    continue
+        return flow_types
+
+    
     def get_pkg_iptypes(self):
         """
         Returns a list of package ip types (-It) present in the trace file
@@ -180,10 +210,10 @@ class NS2NewTraceParser:
                         recv_pkg = recv_pkg + 1
         return recv_pkg
 
-    def get_pkgs_at_macdst(self, mac_dest):
+    def get_pkts_at_macdst(self, mac_dest):
         """
         Returns unique_id of packages with mac destination == mac_dest
-        example: parser.get_pkgs_at_macdst('fffff')
+        example: parser.get_pkts_at_macdst('fffff')
         """
         sent_pkg = []
         recv_pkg = []
@@ -226,10 +256,10 @@ class NS2NewTraceParser:
 
         return (sent_pkg, recv_pkg, drop_pkg)
                         
-    def get_pkgs_at_lvl(self, lvl):
+    def get_pkts_at_lvl(self, lvl):
         """
         Returns a tuple of three lists of sent, received, dropped packets at level lvl ('MAC','AGT','RTR')
-        example: (sent_pkg, recv_pkg, drop_pkg) = parser.get_pkgs_at_lvl('MAC')
+        example: (sent_pkg, recv_pkg, drop_pkg) = parser.get_pkts_at_lvl('MAC')
         """
         
         sent_packets = []
@@ -270,11 +300,11 @@ class NS2NewTraceParser:
 
         return (sent_packets, recv_packets, drop_packets)
 
-    def get_pkgs_flowid(self, flowid, lvl = 'MAC'):
+    def get_pkts_flowid(self, flowid, lvl = 'MAC'):
         """
         Returns a tuple of three lists of sent, received, dropped packets with flow id = flowid
         and at level lvl ('MAC','AGT','RTR') default lvl is 'MAC'
-        example: (sent_pkg, recv_pkg, drop_pkg) = parser.get_pkgs_flowid('MAC')
+        example: (sent_pkg, recv_pkg, drop_pkg) = parser.get_pkts_flowid('MAC')
         """
         sent_packets = []
         recv_packets = []
@@ -284,13 +314,12 @@ class NS2NewTraceParser:
             send_event_found = find_send_event.search(line)
             recv_event_found = find_recv_event.search(line)
             drop_event_found = find_drop_event.search(line)            
-
-            if send_event_found != None:
-                tracelvl = get_trace_lvl.search(line)
-                if tracelvl != None and tracelvl.group(1) == lvl:
-                    flwid = get_pktip_flwid.search(line)
-                    if flwid != None:
-                        if flwid.group(1) == flowid:
+            tracelvl_found = get_trace_lvl.search(line)
+            if send_event_found and tracelvl_found:
+                if tracelvl_found.group(1) == lvl:
+                    flwid_found = get_pktip_flwid.search(line)
+                    if flwid_found:
+                        if flwid_found.group(1) == flowid:
                             seqnum = get_pktip_unqid.search(line)
                             if seqnum != None:
                                 if seqnum.group(1) != None:
@@ -474,7 +503,7 @@ class NS2NewTraceParser:
         """
         Returns a tuple of two dictionaries mapping start and stop times of pkg recv per nodeid.
         It is possibile to select trace level (default is 'MAC')
-        example: (start_times, stop_times) = parser.get_sent_bursts_per_flow()
+        example: (start_times, stop_times) = parser.get_recv_bursts_per_flow()
         """
         last_nodeid = str()
         last_time = float()
@@ -507,3 +536,75 @@ class NS2NewTraceParser:
                             
         return (start_burst_times, stop_burst_times)
 
+    def get_sent_pkts_times_at(self, node_id, flow_id, lvl = 'AGT'):
+        sent_times = []
+        for line in self.input_lines:
+            send_event_found = find_send_event.search(line)
+        
+            if send_event_found:
+                trac_lvl_found = get_trace_lvl.search(line)
+                                
+                if trac_lvl_found and trac_lvl_found.group(1) == lvl:
+                    nodeid_found = get_node_id.search(line)
+                    time_found = get_event_time.search(line)
+                    flowid_found = get_pktip_flwid.search(line)
+                    pktid_found = get_pktip_unqid.search(line)
+
+                    if time_found and nodeid_found and flowid_found and pktid_found:
+                        nodeid = nodeid_found.group(1)
+                        flowid = flowid_found.group(1)
+                        pktid = pktid_found.group(1)
+                        time = time_found.group(1)
+
+                        if nodeid == node_id and flowid == flow_id:
+                            sent_times.append((pktid,time))
+        return sent_times
+
+    def get_recv_pkts_times_at(self, node_id, flow_id, lvl = 'AGT'):
+        recv_times = []
+        for line in self.input_lines:
+            recv_event_found = find_recv_event.search(line)
+        
+            if recv_event_found:
+                trac_lvl_found = get_trace_lvl.search(line)
+                
+                if trac_lvl_found and trac_lvl_found.group(1) == lvl:
+                    nodeid_found = get_node_id.search(line)
+                    time_found = get_event_time.search(line)
+                    flowid_found = get_pktip_flwid.search(line)
+                    pktid_found = get_pktip_unqid.search(line)
+                    
+                    if time_found and nodeid_found and flowid_found and pktid_found:
+                        nodeid = nodeid_found.group(1)
+                        flowid = flowid_found.group(1)
+                        pktid = pktid_found.group(1)
+                        time = time_found.group(1)
+                        
+                        if nodeid == node_id and flowid == flow_id:
+                            recv_times.append((pktid,time))
+        return recv_times
+
+    def get_recv_flow_total_size_at(self, flow_id, node_id, payload, lvl = 'AGT'):
+        recv_size = int(0)
+        for line in self.input_lines:
+            recv_event_found = find_recv_event.search(line)
+            
+            if recv_event_found:
+                trac_lvl_found = get_trace_lvl.search(line)
+                
+                if trac_lvl_found and trac_lvl_found.group(1) == lvl:
+                    nodeid_found = get_node_id.search(line)
+                    time_found = get_event_time.search(line)
+                    flowid_found = get_pktip_flwid.search(line)
+                    pktsize_found = get_pktip_size.search(line)
+                    
+                    if time_found and nodeid_found and flowid_found and pktsize_found:
+                        nodeid = nodeid_found.group(1)
+                        flowid = flowid_found.group(1)
+                        pktsize = int(pktsize_found.group(1))
+                        time = time_found.group(1)
+
+                        if nodeid == node_id and flowid == flow_id:
+                            hdr_size = pktsize % payload
+                            recv_size = recv_size + pktsize - hdr_size
+        return recv_size
