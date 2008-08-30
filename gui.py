@@ -35,7 +35,7 @@ import gtk
 
 from gtk import *
 from gtk import glade
-from parser import NS2NewTraceParser
+from NS2NewTraceParser import NS2NewTraceParser
 
 gdk.threads_init()
 
