@@ -79,7 +79,8 @@ class NS2NewTraceParser:
     parser = NSNewTraceParser(trace_file)
     then you could use methods
     """
-    def __init__(self, input_file):
+    def __init__(self, input_filename):
+        input_file = open(input_filename, 'w')
         self.input_lines = input_file.readlines()
 
     def get_nodes(self):
