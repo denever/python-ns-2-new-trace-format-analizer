@@ -41,7 +41,7 @@ gdk.threads_init()
 
 class Gui:
     def __init__(self):
-        self.parser = ''
+        self.trace_file = ''
         self.wtree = glade.XML('glade/traceanalyser.glade')
         self.wtree.get_widget('win_traceanalyser').connect("destroy", main_quit)
     	self.wtree.get_widget('win_traceanalyser').show()        
@@ -99,16 +99,15 @@ class Gui:
     def on_btn_open_clicked(self, widget):
         self.wtree.get_widget('dlg_openfile').hide()
         filename = self.wtree.get_widget('dlg_openfile').get_filename()
-        trace_file = open(filename,'r')
-        self.parser = NS2NewTraceParser(trace_file)
+        self.trace_file = NS2NewTraceParser(filename)
         
-        for node_id in self.parser.get_nodes():
+        for node_id in self.trace_file.get_nodes():
             self.node_list.append([node_id])
 
-        flow_ids = self.parser.get_flows()
+        flow_ids = self.trace_file.get_flows()
         flow_ids.sort()
-        flow_src_dst = self.parser.get_src_dst_per_flow()
-        flow_types = self.parser.get_flow_types()
+        flow_src_dst = self.trace_file.get_src_dst_per_flow()
+        flow_types = self.trace_file.get_flow_types()
         
         for flow_id in flow_ids:
             (src,dst) = flow_src_dst[flow_id]
