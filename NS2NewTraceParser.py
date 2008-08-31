@@ -537,7 +537,7 @@ class NS2NewTraceParser:
                             
         return (start_burst_times, stop_burst_times)
 
-    def get_sent_pkts_times_at(self, node_id, flow_id, lvl = 'AGT'):
+    def get_sent_pkts_times_at(self, node_id, flow_id, lvl = 'MAC'):
         """Gets sent pkts times"""
         sent_times = []
         for line in self.input_lines:
@@ -562,14 +562,14 @@ class NS2NewTraceParser:
                             sent_times.append((pktid,time))
         return sent_times
 
-    def get_recv_pkts_times_at(self, node_id, flow_id, lvl = 'AGT'):
+    def get_recv_pkts_times_at(self, node_id, flow_id, lvl = 'MAC'):
         recv_times = []
         for line in self.input_lines:
             recv_event_found = find_recv_event.search(line)
         
             if recv_event_found:
                 trac_lvl_found = get_trace_lvl.search(line)
-                
+
                 if trac_lvl_found and trac_lvl_found.group(1) == lvl:
                     nodeid_found = get_node_id.search(line)
                     time_found = get_event_time.search(line)
@@ -586,7 +586,7 @@ class NS2NewTraceParser:
                             recv_times.append((pktid,time))
         return recv_times
 
-    def get_recv_flow_total_size_at(self, flow_id, node_id, payload, lvl = 'AGT'):
+    def get_recv_flow_total_size_at(self, node_id, flow_id, hdr_size, lvl = 'AGT'):
         recv_size = int(0)
         for line in self.input_lines:
             recv_event_found = find_recv_event.search(line)
@@ -607,6 +607,7 @@ class NS2NewTraceParser:
                         time = time_found.group(1)
 
                         if nodeid == node_id and flowid == flow_id:
-                            hdr_size = pktsize % payload
-                            recv_size = recv_size + pktsize - hdr_size
+                            payload = pktsize - hdr_size
+                            recv_size = recv_size + payload
+
         return recv_size
