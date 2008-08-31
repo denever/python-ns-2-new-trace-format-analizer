@@ -28,13 +28,13 @@ import sys
 from NS2NewTraceParser import NS2NewTraceParser
 
 def save_lines_in(filename, lines):
-    lost_pkg_tr = open(filename, 'w')
+    lost_pkt_tr = open(filename, 'w')
     for line in lines:
-        lost_pkg_tr.write(line)
+        lost_pkt_tr.write(line)
 
 if __name__ == '__main__':
     if len(sys.argv) == 2:
-        input_file = open(sys.argv[1], 'r') # apre il file in read
+        input_file = sys.argv[1]
     else:
         print "usage tracana.py input_file"
         sys.exit(1)
@@ -43,37 +43,37 @@ if __name__ == '__main__':
 
     for flowid  in range(0,12):
         print "Checking flow: ", flowid, "..."
-        (sent, recv, drop) = parser.get_pkgs_flowid(str(flowid))
-        print len(sent), len(recv)
+        (sent, recv, drop) = parser.get_pkts_flowid(str(flowid))
+#        print len(sent), len(recv)
         if len(sent) != len(recv):
-            print "Flow " + str(flowid) + " has lost pkgs!"
-            print "Recv pkgs: ", len(sent)
-            print "Sent pkgs: ", len(recv)
-            print "Finding unique_id of lost pkgs..."
+            print "Flow " + str(flowid) + " has lost pkts!"
+            print "Recv pkts: ", len(sent)
+            print "Sent pkts: ", len(recv)
+            print "Finding unique_id of lost pkts..."
 
-            lost_pkgs = []
-            for sent_pkg in sent:
-                if sent_pkg not in recv:
-                    print 'Pkg ' + sent_pkg + ' was lost'
-                    lost_pkgs.append(sent_pkg)
+            lost_pkts = []
+            for sent_pkt in sent:
+                if sent_pkt not in recv:
+                    print 'Pkt ' + sent_pkt + ' was lost'
+                    lost_pkts.append(sent_pkt)
 
-            print "Retriving trace for lost pkgs..."
-            for lost_pkg in lost_pkgs:
-                filename = 'lost_pkg_' + lost_pkg + '.tr'
-                print 'Saving trace of lost pkg ' + lost_pkg + ' in...' + filename
+            print "Retriving trace for lost pkts..."
+            for lost_pkt in lost_pkts:
+                filename = 'lost_pkt_' + lost_pkt + '.tr'
+                print 'Saving trace of lost pkt ' + lost_pkt + ' in...' + filename
 
-                lines = parser.get_trace_of(lost_pkg)
+                lines = parser.get_trace_of(lost_pkt)
                 save_lines_in(filename, lines)
         else:
-            print "All pkgs of flow " + str(flowid) + " were received"
+            print "All pkts of flow " + str(flowid) + " were received"
             
-        print "Checking sequence for pkgs of flow ", flowid, "..."
+        print "Checking sequence for pkts of flow ", flowid, "..."
         tmp = int(-1)
-        for recv_pkg in recv:
-            if not int(recv_pkg) > tmp:
-                print 'Wrong sequence at ', tmp, recv_pkg
-            tmp = int(recv_pkg)
-        print "Pkgs of flow " + str(flowid) + " were received in the correct sequence"
+        for recv_pkt in recv:
+            if not int(recv_pkt) > tmp:
+                print 'Wrong sequence at ', tmp, recv_pkt
+            tmp = int(recv_pkt)
+        print "Pkts of flow " + str(flowid) + " were received in the correct sequence"
 
-    (sent_trace, foo, bar) = parser.get_trace_maconly_pkgs()
-    save_lines_in('unknown_macpkgs.txt',sent_trace)
+    (sent_trace, foo, bar) = parser.get_trace_maconly_pkts()
+    save_lines_in('unknown_macpkts.txt',sent_trace)
