@@ -141,10 +141,10 @@ class NS2NewTraceParser:
         return flow_types
 
     
-    def get_pkg_iptypes(self):
+    def get_pkt_iptypes(self):
         """
         Returns a list of package ip types (-It) present in the trace file
-        example: types = parser.get_pkg_iptypes()
+        example: types = parser.get_pkt_iptypes()
         """
         known_types = []
         for line in self.input_lines:
@@ -160,12 +160,12 @@ class NS2NewTraceParser:
         Return a list of trace lines for the package with unique_id
         example: print parser.get_trace_of('1')
         """
-        pkg_trace = []
+        pkt_trace = []
         for line in self.input_lines:        
             uniqid = get_pktip_unqid.search(line)
             if uniqid != None and uniqid.group(1) == unique_id:
-                pkg_trace.append(line)
-        return pkg_trace
+                pkt_trace.append(line)
+        return pkt_trace
                 
     def get_all_mac_dst(self):
         """
@@ -195,12 +195,12 @@ class NS2NewTraceParser:
 
         return (sent_mac_dsts, recv_mac_dsts, drop_mac_dsts)
 
-    def count_recv_pkg_at_node(self, node_id):
+    def count_recv_pkt_at_node(self, node_id):
         """
         Returns the number of packages received at the node node_id
-        example: num_recv_pkgs = parser.count_recv_pkg_at_node('1')
+        example: num_recv_pkts = parser.count_recv_pkt_at_node('1')
         """
-        recv_pkg = 0
+        recv_pkt = 0
         for line in self.input_lines:
             recv_event_found = find_recv_event.search(line)
             if recv_event_found != None:
@@ -208,17 +208,17 @@ class NS2NewTraceParser:
                 nodeid = get_node_id.search(line)
                 if nodeid != None and tracelvl != None:
                     if nodeid.group(1) == node_id and tracelvl.group(1) == "MAC":
-                        recv_pkg = recv_pkg + 1
-        return recv_pkg
+                        recv_pkt = recv_pkt + 1
+        return recv_pkt
 
     def get_pkts_at_macdst(self, mac_dest):
         """
         Returns unique_id of packages with mac destination == mac_dest
         example: parser.get_pkts_at_macdst('fffff')
         """
-        sent_pkg = []
-        recv_pkg = []
-        drop_pkg = []
+        sent_pkt = []
+        recv_pkt = []
+        drop_pkt = []
         
         for line in self.input_lines:
             send_event_found = find_send_event.search(line)
@@ -233,7 +233,7 @@ class NS2NewTraceParser:
                         seqnum = get_pktip_unqid.search(line)
                         if seqnum != None:
                             if seqnum.group(1) != None:
-                                sent_pkg.append(seqnum.group(1))
+                                sent_pkt.append(seqnum.group(1))
                 
             if recv_event_found != None:
                 tracelvl = get_trace_lvl.search(line)
@@ -243,7 +243,7 @@ class NS2NewTraceParser:
                         seqnum = get_pktip_unqid.search(line)
                         if seqnum != None:
                             if seqnum.group(1) != None:
-                                recv_pkg.append(seqnum.group(1))
+                                recv_pkt.append(seqnum.group(1))
 
             if drop_event_found != None:
                 tracelvl = get_trace_lvl.search(line)
@@ -253,14 +253,14 @@ class NS2NewTraceParser:
                         seqnum = get_pktip_unqid.search(line)
                         if seqnum != None:
                             if seqnum.group(1) != None:
-                                drop_pkg.append(seqnum.group(1))
+                                drop_pkt.append(seqnum.group(1))
 
-        return (sent_pkg, recv_pkg, drop_pkg)
+        return (sent_pkt, recv_pkt, drop_pkt)
                         
     def get_pkts_at_lvl(self, lvl):
         """
         Returns a tuple of three lists of sent, received, dropped packets at level lvl ('MAC','AGT','RTR')
-        example: (sent_pkg, recv_pkg, drop_pkg) = parser.get_pkts_at_lvl('MAC')
+        example: (sent_pkt, recv_pkt, drop_pkt) = parser.get_pkts_at_lvl('MAC')
         """
         
         sent_packets = []
@@ -305,7 +305,7 @@ class NS2NewTraceParser:
         """
         Returns a tuple of three lists of sent, received, dropped packets with flow id = flowid
         and at level lvl ('MAC','AGT','RTR') default lvl is 'MAC'
-        example: (sent_pkg, recv_pkg, drop_pkg) = parser.get_pkts_flowid('MAC')
+        example: (sent_pkt, recv_pkt, drop_pkt) = parser.get_pkts_flowid('MAC')
         """
         sent_packets = []
         recv_packets = []
@@ -350,15 +350,15 @@ class NS2NewTraceParser:
 
         return (sent_packets, recv_packets, drop_packets)
 
-    def get_trace_maconly_pkgs(self):
+    def get_trace_maconly_pkts(self):
         """
         Returns a tuple of three lists of trace lines of sent, received, dropped MAC level packages
-        example: lines = parser.get_trace_maconly_pkgs()
+        example: lines = parser.get_trace_maconly_pkts()
         """
         
-        sent_macpkg = []
-        recv_macpkg = []
-        drop_macpkg = []
+        sent_macpkt = []
+        recv_macpkt = []
+        drop_macpkt = []
         
         for line in self.input_lines:
             send_event_found = find_send_event.search(line)
@@ -370,23 +370,23 @@ class NS2NewTraceParser:
                 if tracelvl != None and tracelvl.group(1) == "MAC":
                     seqnum = get_pktip_unqid.search(line)
                     if seqnum == None:
-                        sent_macpkg.append(line)
+                        sent_macpkt.append(line)
 
             if recv_event_found != None:
                 tracelvl = get_trace_lvl.search(line)
                 if tracelvl != None and tracelvl.group(1) == "MAC":
                     seqnum = get_pktip_unqid.search(line)
                     if seqnum == None:
-                        recv_macpkg.append(line)
+                        recv_macpkt.append(line)
 
             if drop_event_found != None:
                 tracelvl = get_trace_lvl.search(line)
                 if tracelvl != None and tracelvl.group(1) == "MAC":
                     seqnum = get_pktip_unqid.search(line)
                     if seqnum == None:
-                        drop_macpkg.append(line)
+                        drop_macpkt.append(line)
 
-        return (sent_macpkg, recv_macpkg, drop_macpkg)
+        return (sent_macpkt, recv_macpkt, drop_macpkt)
 
     
     def get_sent_bursts_per_flow(self, lvl = 'MAC'):
@@ -428,7 +428,7 @@ class NS2NewTraceParser:
 
     def get_sent_bursts_per_node(self, lvl = 'MAC'):
         """
-        Returns a tuple of two dictionaries mapping start and stop times of pkg sent per nodeid.
+        Returns a tuple of two dictionaries mapping start and stop times of pkt sent per nodeid.
         It is possibile to select trace level (default is 'MAC')
         example: (start_times, stop_times) = parser.get_sent_bursts_per_flow()
         """
@@ -502,7 +502,7 @@ class NS2NewTraceParser:
 
     def get_recv_bursts_per_node(self, lvl = 'MAC'):
         """
-        Returns a tuple of two dictionaries mapping start and stop times of pkg recv per nodeid.
+        Returns a tuple of two dictionaries mapping start and stop times of pkt recv per nodeid.
         It is possibile to select trace level (default is 'MAC')
         example: (start_times, stop_times) = parser.get_recv_bursts_per_flow()
         """
