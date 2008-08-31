@@ -34,7 +34,7 @@ def save_lines_in(filename, lines):
 
 if __name__ == '__main__':
     if len(sys.argv) == 2:
-        input_file = open(sys.argv[1], 'r') # apre il file in read
+        input_file = sys.argv[1]
     else:
         print "usage tracana.py input_file"
         sys.exit(1)
