@@ -80,7 +80,7 @@ class NS2NewTraceParser:
     then you could use methods
     """
     def __init__(self, input_filename):
-        input_file = open(input_filename, 'w')
+        input_file = open(input_filename, 'r')
         self.input_lines = input_file.readlines()
 
     def get_nodes(self):
@@ -538,6 +538,7 @@ class NS2NewTraceParser:
         return (start_burst_times, stop_burst_times)
 
     def get_sent_pkts_times_at(self, node_id, flow_id, lvl = 'AGT'):
+        """Gets sent pkts times"""
         sent_times = []
         for line in self.input_lines:
             send_event_found = find_send_event.search(line)
