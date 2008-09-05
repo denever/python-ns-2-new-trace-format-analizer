@@ -45,6 +45,6 @@ if __name__ == '__main__':
 
     for nodeid in start_bursts.keys():
         if not nodeid == '0':
-            for i in range(len(start_bursts[nodeid])):
+            for i in xrange(len(start_bursts[nodeid])):
                 duration = float(stop_bursts[nodeid][i]) - float(start_bursts[nodeid][i])
                 print "Node id:", nodeid, "Start:", start_bursts[nodeid][i], "duration:", round(duration, 6)  
