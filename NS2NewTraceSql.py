@@ -141,12 +141,16 @@ ip_size text,
 
     def __init__(self, db_name, input_filename = None):
         self.database_name = db_name
-        self.conn = sqlite3.connect(self.database_name)
 
-        if input_filename == None:
-            return
-        elif os.path.exists(self.database_name):
+        if input_filename != None and os.path.exists(self.database_name):
             os.remove(self.database_name)
+
+        self.conn = sqlite3.connect(self.database_name)
+        
+        if input_filename == None and os.path.exists(self.database_name):
+            return
+        else:
+            print 'Error'
 
         c = self.conn.cursor()
 
@@ -154,7 +158,8 @@ ip_size text,
         c.execute(self.create_recv_event_table)
         c.execute(self.create_drop_event_table)
         c.execute(self.create_fwrd_event_table)        
-
+        self.conn.commit()
+        
         input_file = open(input_filename, 'r')
         input_lines = input_file.readlines()
 
@@ -196,21 +201,18 @@ ip_size text,
             
             if send_event_found:
                 c.execute(self.insert_send_event, t)
-                continue
 
             if recv_event_found:
                 c.execute(self.insert_recv_event, t)
-                continue
 
             if drop_event_found:
                 c.execute(self.insert_drop_event, t)
-                continue
 
             if fwrd_event_found:
                 c.execute(self.insert_fwrd_event, t)
-                continue
             
         self.conn.commit()
+        print 'commit!'
         c.close()
 
     def get_nodes(self):
