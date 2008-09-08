@@ -26,6 +26,8 @@
 
 import re
 import sys
+import sqlite3
+import os.path
 
 find_send_event = re.compile("^s")
 find_recv_event = re.compile("^r")
@@ -66,12 +68,13 @@ trace_lvl_agt = re.compile("-Nl AGT")
 trace_lvl_rtr = re.compile("-Nl RTR")
 trace_lvl_rtr = re.compile("-Nl MAC")
 
-app_proto_arp = re.compile('-P arp')
-app_proto_dsr = re.compile('-P dsr')
-app_proto_cbr = re.compile('-P cbr')
-app_proto_tcp = re.compile('-P tcp')
+app_proto_arp = re.compile('-Pn arp')
+app_proto_dsr = re.compile('-Pn dsr')
+app_proto_cbr = re.compile('-Pn cbr')
+app_proto_tcp = re.compile('-Pn tcp')
 
-class NS2NewTraceParser:
+
+class NS2NewTraceSql:
     """
     This class parse the new trace parser
     Open a file and pass it to the constructor
@@ -79,67 +82,173 @@ class NS2NewTraceParser:
     parser = NSNewTraceParser(trace_file)
     then you could use methods
     """
-    def __init__(self, input_filename):
+    create_send_event_table = """create table send_events 
+(time text,
+ nodeid integer,
+ tracelvl text,
+ reason text,
+ ip_src text,
+ip_dst text,
+ip_type text,
+ip_size text,
+ flowid integer,
+ uniqid integer,
+ pkt_app text)"""
+
+    create_recv_event_table = """create table recv_events 
+(time text,
+ nodeid integer,
+ tracelvl text,
+ reason text,
+ ip_src text,
+ip_dst text,
+ip_type text,
+ip_size text,
+ flowid integer,
+ uniqid integer,
+ pkt_app text)"""
+
+    create_drop_event_table = """create table drop_events 
+(time text,
+ nodeid integer,
+ tracelvl text,
+ reason text,
+ ip_src text,
+ip_dst text,
+ip_type text,
+ip_size text,
+ flowid integer,
+ uniqid integer,
+ pkt_app text)"""
+
+    create_fwrd_event_table = """create table fwrd_events 
+(time text,
+ nodeid integer,
+ tracelvl text,
+ reason text,
+ ip_src text,
+ip_dst text,
+ip_type text,
+ip_size text,
+ flowid integer,
+ uniqid integer,
+ pkt_app text)"""
+
+    insert_send_event = "insert into send_events values (?,?,?,?,?,?,?,?,?,?,?)"
+    insert_recv_event = "insert into recv_events values (?,?,?,?,?,?,?,?,?,?,?)"
+    insert_drop_event = "insert into drop_events values (?,?,?,?,?,?,?,?,?,?,?)"
+    insert_fwrd_event = "insert into fwrd_events values (?,?,?,?,?,?,?,?,?,?,?)"
+
+    def __init__(self, db_name, input_filename = None):
+        self.database_name = db_name
+        self.conn = sqlite3.connect(self.database_name)
+
+        if input_filename == None:
+            return
+        elif os.path.exists(self.database_name):
+            os.remove(self.database_name)
+
+        c = self.conn.cursor()
+
+        c.execute(self.create_send_event_table)
+        c.execute(self.create_recv_event_table)
+        c.execute(self.create_drop_event_table)
+        c.execute(self.create_fwrd_event_table)        
+
         input_file = open(input_filename, 'r')
-        self.input_lines = input_file.readlines()
+        input_lines = input_file.readlines()
+
+        for line in input_lines:
+            send_event_found = find_send_event.search(line)
+            recv_event_found = find_recv_event.search(line)
+            drop_event_found = find_drop_event.search(line)
+            fwrd_event_found = find_fwrd_event.search(line)
+
+            time = get_event_time.search(line).group(1)
+            node_id = get_node_id.search(line).group(1)
+            tracelvl = get_trace_lvl.search(line).group(1)
+            
+            event_rsn_found = get_event_rsn.search(line)
+            event_rsn = event_rsn_found.group(1) if event_rsn_found else None
+            
+            ip_src_found = get_pktip_src.search(line)
+            ip_src = ip_src_found.group(1) if ip_src_found else None
+            
+            ip_dst_found = get_pktip_dst.search(line)
+            ip_dst = ip_dst_found.group(1) if ip_dst_found else None
+            
+            ip_type_found = get_pktip_type.search(line)
+            ip_type = ip_type_found.group(1) if ip_type_found else None
+            
+            ip_size_found = get_pktip_size.search(line)
+            ip_size = ip_size_found.group(1) if ip_size_found else None
+            
+            flowid_found = get_pktip_flwid.search(line)
+            flowid = int(flowid_found.group(1)) if flowid_found else None
+            
+            uniqid_found = get_pktip_unqid.search(line)
+            uniqid = int(uniqid_found.group(1)) if uniqid_found else None
+            
+            app_found = get_pkapp_proto.search(line)
+            app = app_found.group(1) if app_found else None
+            
+            t = (time, int(node_id), tracelvl, event_rsn, ip_src, ip_dst, ip_type, ip_size, flowid, uniqid, app)
+            
+            if send_event_found:
+                c.execute(self.insert_send_event, t)
+                continue
+
+            if recv_event_found:
+                c.execute(self.insert_recv_event, t)
+                continue
+
+            if drop_event_found:
+                c.execute(self.insert_drop_event, t)
+                continue
+
+            if fwrd_event_found:
+                c.execute(self.insert_fwrd_event, t)
+                continue
+            
+        self.conn.commit()
+        c.close()
 
     def get_nodes(self):
-        node_ids = []
-        for line in self.input_lines:
-            node_id_found = get_node_id.search(line)
-            if node_id_found:
-                node_id = node_id_found.group(1)
-                if not node_id in node_ids:
-                    node_ids.append(node_id)
-        return node_ids
+        c = self.conn.cursor()
+        c.execute('select nodeid from send_events where nodeid not null group by nodeid')
+        nodes = [nodeid[0] for nodeid in c]
+        c.close()
+        return nodes
 
     def get_flows(self):
-        flow_ids = []
-        for line in self.input_lines:
-            flow_id_found = get_pktip_flwid.search(line)
-            if flow_id_found:
-                flow_id = flow_id_found.group(1)
-                if not flow_id in flow_ids:
-                    flow_ids.append(flow_id)
-        return flow_ids
-        
+        c = self.conn.cursor()
+        c.execute('select flowid from send_events where flowid not null group by flowid')
+        flowids = [flowid[0] for flowid in c]
+        c.close()
+        return flowids        
 
     def get_src_dst_per_flow(self):
-        src_dst = {}
-        for line in self.input_lines:
-            tracelvl_found = trace_lvl_agt.search(line)
-            flow_id_found = get_pktip_flwid.search(line)
-            src_found = get_pktip_src.search(line)
-            dst_found = get_pktip_dst.search(line)
+        c = self.conn.cursor()
+        c.execute('select ip_src, ip_dst, flowid from send_events where flowid not null group by flowid')
 
-            if tracelvl_found and flow_id_found and src_found and dst_found:
-                flow_id = flow_id_found.group(1)
-                src = src_found.group(1)
-                dst = dst_found.group(1)
-                
-                if not src_dst.has_key(flow_id):
-                    src_dst[flow_id] = (src, dst)
-                else:
-                    continue
+        src_dst = {}
+        
+        for data in c:
+            src_dst[data[2]] = (data[0], data[1])
+            
+        c.close()
         return src_dst                        
 
     def get_flow_types(self):
+        c = self.conn.cursor()
+        c.execute('select pkt_app, flowid from send_events where flowid not null group by flowid')
+        
         flow_types = {}
-        for line in self.input_lines:
-            tracelvl_found = trace_lvl_agt.search(line)
-            flow_id_found = get_pktip_flwid.search(line)
-            pktapp_proto_found = get_pkapp_proto.search(line)
 
-            if tracelvl_found and flow_id_found and pktapp_proto_found:
-                flow_id = flow_id_found.group(1)
-                app_proto = pktapp_proto_found.group(1)
-                
-                if not flow_types.has_key(flow_id):
-                    flow_types[flow_id] = app_proto
-                else:
-                    continue
+        for data in c:
+            flow_types[data[1]] = data[0]
+        
         return flow_types
-
     
     def get_pkt_iptypes(self):
         """
@@ -147,12 +256,28 @@ class NS2NewTraceParser:
         example: types = parser.get_pkt_iptypes()
         """
         known_types = []
-        for line in self.input_lines:
-            type = get_pktip_type.search(line)
-            if type != None:
-                new_type = type.group(1)
-                if new_type not in known_types:
-                    known_types.append(new_type)
+        
+        c = self.conn.cursor()
+
+        c.execute('select ip_type from send_events where ip_type not null group by ip_type')
+        for data in c:
+            known_types.append(data[0])
+        
+        c.execute('select ip_type from recv_events where ip_type not null group by ip_type')
+        for data in c:
+            if data[0] not in known_types:
+                known_types.append(data[0])
+
+        c.execute('select ip_type from drop_events where ip_type not null group by ip_type')        
+        for data in c:
+            if data[0] not in known_types:
+                known_types.append(data[0])
+
+        c.execute('select ip_type from fwrd_events where ip_type not null group by ip_type')
+        for data in c:
+            if data[0] not in known_types:
+                known_types.append(data[0])
+
         return known_types
 
     def get_trace_of(self, unique_id):
@@ -161,55 +286,36 @@ class NS2NewTraceParser:
         example: print parser.get_trace_of('1')
         """
         pkt_trace = []
-        for line in self.input_lines:        
-            uniqid = get_pktip_unqid.search(line)
-            if uniqid != None and uniqid.group(1) == unique_id:
-                pkt_trace.append(line)
+        c = self.conn.cursor()
+
+        c.execute('select "sent",* from send_events where uniqid = %d' % int(unique_id))
+        for data in c:
+            pkt_trace.append(data)
+
+        c.execute('select "recv",* from recv_events where uniqid = %d' % int(unique_id))
+        for data in c:
+            pkt_trace.append(data)
+            
+        c.execute('select "drop",* from drop_events where uniqid = %d' % int(unique_id))
+        for data in c:
+            pkt_trace.append(data)
+
+        c.execute('select "fwrd",* from fwrd_events where uniqid = %d' % int(unique_id))
+        for data in c:
+            pkt_trace.append(data)
+            
         return pkt_trace
                 
-    def get_all_mac_dst(self):
-        """
-        Returns a list with all mac destination (-Md) in the trace file
-        example: print parser.get_all_mac_dst
-        """
-        sent_mac_dsts = []
-        recv_mac_dsts = []
-        drop_mac_dsts = []
-        
-        for line in self.input_lines:
-            send_event_found = find_send_event.search(line)
-            recv_event_found = find_recv_event.search(line)
-            drop_event_found = find_drop_event.search(line)
-            
-            if send_event_found:
-                macdst = get_pkmac_dst.search(line)
-                sent_mac_dsts.append(macdst.group(1))
-                
-            if recv_event_found:
-                macdst = get_pkmac_dst.search(line)
-                recv_mac_dsts.append(macdst.group(1))
-
-            if drop_event_found:
-                macdst = get_pkmac_dst.search(line)
-                drop_mac_dsts.append(macdst.group(1))
-
-        return (sent_mac_dsts, recv_mac_dsts, drop_mac_dsts)
-
     def count_recv_pkt_at_node(self, node_id):
         """
         Returns the number of packages received at the node node_id
         example: num_recv_pkts = parser.count_recv_pkt_at_node('1')
         """
-        recv_pkt = 0
-        for line in self.input_lines:
-            recv_event_found = find_recv_event.search(line)
-            if recv_event_found != None:
-                tracelvl = get_trace_lvl.search(line)
-                nodeid = get_node_id.search(line)
-                if nodeid != None and tracelvl != None:
-                    if nodeid.group(1) == node_id and tracelvl.group(1) == "MAC":
-                        recv_pkt = recv_pkt + 1
-        return recv_pkt
+        c = self.conn.cursor()
+
+        c.execute('select count(*) from recv_events where nodeid = %d' % int(node_id))
+
+        return c.fetchone()[0]
 
     def get_pkts_at_macdst(self, mac_dest):
         """
@@ -395,7 +501,7 @@ class NS2NewTraceParser:
         It is possibile to select trace level (default is 'MAC')
         example: (start_times, stop_times) = parser.get_sent_bursts_per_flow()
         """
-        last_flowid = str()
+        last_flowid = None
         last_time = float()
         start_burst_times = {}
         stop_burst_times = {}
@@ -432,8 +538,8 @@ class NS2NewTraceParser:
         It is possibile to select trace level (default is 'MAC')
         example: (start_times, stop_times) = parser.get_sent_bursts_per_flow()
         """
-        last_nodeid = str()
-        last_time = str()
+        last_nodeid = None
+        last_time = None
         start_burst_times = {}
         stop_burst_times = {}
         
@@ -469,7 +575,7 @@ class NS2NewTraceParser:
         It is possibile to select trace level (default is 'MAC')
         example: (start_times, stop_times) = parser.get_sent_bursts_per_flow()
         """
-        last_flowid = str()
+        last_flowid = None
         last_time = float()
         start_burst_times = {}
         stop_burst_times = {}
@@ -506,7 +612,7 @@ class NS2NewTraceParser:
         It is possibile to select trace level (default is 'MAC')
         example: (start_times, stop_times) = parser.get_recv_bursts_per_flow()
         """
-        last_nodeid = str()
+        last_nodeid = None
         last_time = float()
         start_burst_times = {}
         stop_burst_times = {}
@@ -611,3 +717,32 @@ class NS2NewTraceParser:
                             recv_size = recv_size + payload
 
         return recv_size
+
+    def get_all_mac_dst(self):
+        """
+        Returns a list with all mac destination (-Md) in the trace file
+        example: print parser.get_all_mac_dst
+        """
+        sent_mac_dsts = []
+        recv_mac_dsts = []
+        drop_mac_dsts = []
+        
+        for line in self.input_lines:
+            send_event_found = find_send_event.search(line)
+            recv_event_found = find_recv_event.search(line)
+            drop_event_found = find_drop_event.search(line)
+            
+            if send_event_found:
+                macdst = get_pkmac_dst.search(line)
+                sent_mac_dsts.append(macdst.group(1))
+                
+            if recv_event_found:
+                macdst = get_pkmac_dst.search(line)
+                recv_mac_dsts.append(macdst.group(1))
+
+            if drop_event_found:
+                macdst = get_pkmac_dst.search(line)
+                drop_mac_dsts.append(macdst.group(1))
+
+        return (sent_mac_dsts, recv_mac_dsts, drop_mac_dsts)
+
