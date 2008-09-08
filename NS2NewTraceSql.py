@@ -423,39 +423,51 @@ class NS2NewTraceSql:
         Returns a tuple of three lists of trace lines of sent, received, dropped MAC level packages
         example: lines = parser.get_trace_maconly_pkts()
         """
+        c = self.conn.cursor()
+        c.execute("select * from send_events where uniqid is null")
+        sent_macpkt = c
         
-        sent_macpkt = []
-        recv_macpkt = []
-        drop_macpkt = []
+        c.execute("select * from recv_events where uniqid is null")
+        recv_macpkt = c
         
-        for line in self.input_lines:
-            send_event_found = find_send_event.search(line)
-            recv_event_found = find_recv_event.search(line)
-            drop_event_found = find_drop_event.search(line)            
-
-            if send_event_found != None:
-                tracelvl = get_trace_lvl.search(line)
-                if tracelvl != None and tracelvl.group(1) == "MAC":
-                    seqnum = get_pktip_unqid.search(line)
-                    if seqnum == None:
-                        sent_macpkt.append(line)
-
-            if recv_event_found != None:
-                tracelvl = get_trace_lvl.search(line)
-                if tracelvl != None and tracelvl.group(1) == "MAC":
-                    seqnum = get_pktip_unqid.search(line)
-                    if seqnum == None:
-                        recv_macpkt.append(line)
-
-            if drop_event_found != None:
-                tracelvl = get_trace_lvl.search(line)
-                if tracelvl != None and tracelvl.group(1) == "MAC":
-                    seqnum = get_pktip_unqid.search(line)
-                    if seqnum == None:
-                        drop_macpkt.append(line)
+        c.execute("select * from drop_events where uniqid is null")        
+        drop_macpkt = c
 
         return (sent_macpkt, recv_macpkt, drop_macpkt)
 
+    def get_sent_pkts_times_at(self, node_id, flow_id, lvl = 'MAC'):
+        """Gets sent pkts times"""
+        c = self.conn.cursor()
+
+        c.execute("select uniqid,time from send_events where uniqid not null and nodeid = %d and flowid = %d and tracelvl = '%s'" % (node_id, flow_id, lvl))
+        sent_times = [(data[0],data[1]) for data in c]
+        
+        c.close()
+            
+        return sent_times
+
+    def get_recv_pkts_times_at(self, node_id, flow_id, lvl = 'MAC'):
+        c = self.conn.cursor()
+
+        c.execute("select uniqid,time from recv_events where uniqid not null and nodeid = %d and flowid = %d and tracelvl = '%s'" % (node_id, flow_id, lvl))
+        recv_times = [(data[0],data[1]) for data in c]
+        
+        c.close()
+            
+        return recv_times
+    
+    def get_recv_flow_total_size_at(self, node_id, flow_id, hdr_size, lvl = 'AGT'):
+        c = self.conn.cursor()
+        
+        c.execute("select count(*),sum(ip_size) from recv_events where uniqid not null and nodeid = %d and flowid = %d and tracelvl = '%s'" % (node_id, flow_id, lvl))
+        row = c.fetchone()
+        recv_rawsize = row[1]
+        pkt_count = row[0]
+        recv_size = recv_rawsize - hdr_size * pkt_count
+        
+        c.close()
+        
+        return recv_size
     
     def get_sent_bursts_per_flow(self, lvl = 'MAC'):
         """
@@ -605,80 +617,6 @@ class NS2NewTraceSql:
                             
         return (start_burst_times, stop_burst_times)
 
-    def get_sent_pkts_times_at(self, node_id, flow_id, lvl = 'MAC'):
-        """Gets sent pkts times"""
-        sent_times = []
-        for line in self.input_lines:
-            send_event_found = find_send_event.search(line)
-        
-            if send_event_found:
-                trac_lvl_found = get_trace_lvl.search(line)
-                                
-                if trac_lvl_found and trac_lvl_found.group(1) == lvl:
-                    nodeid_found = get_node_id.search(line)
-                    time_found = get_event_time.search(line)
-                    flowid_found = get_pktip_flwid.search(line)
-                    pktid_found = get_pktip_unqid.search(line)
-
-                    if time_found and nodeid_found and flowid_found and pktid_found:
-                        nodeid = nodeid_found.group(1)
-                        flowid = flowid_found.group(1)
-                        pktid = pktid_found.group(1)
-                        time = time_found.group(1)
-
-                        if nodeid == node_id and flowid == flow_id:
-                            sent_times.append((pktid,time))
-        return sent_times
-
-    def get_recv_pkts_times_at(self, node_id, flow_id, lvl = 'MAC'):
-        recv_times = []
-        for line in self.input_lines:
-            recv_event_found = find_recv_event.search(line)
-        
-            if recv_event_found:
-                trac_lvl_found = get_trace_lvl.search(line)
-
-                if trac_lvl_found and trac_lvl_found.group(1) == lvl:
-                    nodeid_found = get_node_id.search(line)
-                    time_found = get_event_time.search(line)
-                    flowid_found = get_pktip_flwid.search(line)
-                    pktid_found = get_pktip_unqid.search(line)
-                    
-                    if time_found and nodeid_found and flowid_found and pktid_found:
-                        nodeid = nodeid_found.group(1)
-                        flowid = flowid_found.group(1)
-                        pktid = pktid_found.group(1)
-                        time = time_found.group(1)
-                        
-                        if nodeid == node_id and flowid == flow_id:
-                            recv_times.append((pktid,time))
-        return recv_times
-
-    def get_recv_flow_total_size_at(self, node_id, flow_id, hdr_size, lvl = 'AGT'):
-        recv_size = int(0)
-        for line in self.input_lines:
-            recv_event_found = find_recv_event.search(line)
-            
-            if recv_event_found:
-                trac_lvl_found = get_trace_lvl.search(line)
-                
-                if trac_lvl_found and trac_lvl_found.group(1) == lvl:
-                    nodeid_found = get_node_id.search(line)
-                    time_found = get_event_time.search(line)
-                    flowid_found = get_pktip_flwid.search(line)
-                    pktsize_found = get_pktip_size.search(line)
-                    
-                    if time_found and nodeid_found and flowid_found and pktsize_found:
-                        nodeid = nodeid_found.group(1)
-                        flowid = flowid_found.group(1)
-                        pktsize = int(pktsize_found.group(1))
-                        time = time_found.group(1)
-
-                        if nodeid == node_id and flowid == flow_id:
-                            payload = pktsize - hdr_size
-                            recv_size = recv_size + payload
-
-        return recv_size
 
     def get_all_mac_dst(self):
         """
