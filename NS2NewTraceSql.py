@@ -227,7 +227,6 @@ class NS2NewTraceSql:
                 c.execute(self.insert_fwrd_event, t)
             
         self.conn.commit()
-        print 'commit!'
         c.close()
 
     def get_nodes(self):
