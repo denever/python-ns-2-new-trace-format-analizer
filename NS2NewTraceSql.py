@@ -88,11 +88,14 @@ class NS2NewTraceSql:
  tracelvl text,
  reason text,
  ip_src text,
-ip_dst text,
-ip_type text,
-ip_size text,
+ ip_src_prt integer,
+ ip_dst text,
+ ip_dst_prt integer,
+ ip_type text,
+ ip_size integer,
  flowid integer,
  uniqid integer,
+ ip_ttl integer,
  pkt_app text)"""
 
     create_recv_event_table = """create table recv_events 
@@ -101,11 +104,14 @@ ip_size text,
  tracelvl text,
  reason text,
  ip_src text,
-ip_dst text,
-ip_type text,
-ip_size text,
+ ip_src_prt integer,
+ ip_dst text,
+ ip_dst_prt integer,
+ ip_type text,
+ ip_size integer,
  flowid integer,
  uniqid integer,
+ ip_ttl integer,
  pkt_app text)"""
 
     create_drop_event_table = """create table drop_events 
@@ -114,11 +120,14 @@ ip_size text,
  tracelvl text,
  reason text,
  ip_src text,
-ip_dst text,
-ip_type text,
-ip_size text,
+ ip_src_prt integer,
+ ip_dst text,
+ ip_dst_prt integer,
+ ip_type text,
+ ip_size integer,
  flowid integer,
  uniqid integer,
+ ip_ttl integer,
  pkt_app text)"""
 
     create_fwrd_event_table = """create table fwrd_events 
@@ -127,17 +136,20 @@ ip_size text,
  tracelvl text,
  reason text,
  ip_src text,
-ip_dst text,
-ip_type text,
-ip_size text,
+ ip_src_prt integer,
+ ip_dst text,
+ ip_dst_prt integer,
+ ip_type text,
+ ip_size integer,
  flowid integer,
  uniqid integer,
+ ip_ttl integer,
  pkt_app text)"""
 
-    insert_send_event = "insert into send_events values (?,?,?,?,?,?,?,?,?,?,?)"
-    insert_recv_event = "insert into recv_events values (?,?,?,?,?,?,?,?,?,?,?)"
-    insert_drop_event = "insert into drop_events values (?,?,?,?,?,?,?,?,?,?,?)"
-    insert_fwrd_event = "insert into fwrd_events values (?,?,?,?,?,?,?,?,?,?,?)"
+    insert_send_event = "insert into send_events values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+    insert_recv_event = "insert into recv_events values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+    insert_drop_event = "insert into drop_events values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+    insert_fwrd_event = "insert into fwrd_events values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
     def __init__(self, db_name, input_filename = None):
         self.database_name = db_name
@@ -147,10 +159,8 @@ ip_size text,
 
         self.conn = sqlite3.connect(self.database_name)
         
-        if input_filename == None and os.path.exists(self.database_name):
+        if input_filename == None:
             return
-        else:
-            print 'Error'
 
         c = self.conn.cursor()
 
@@ -178,26 +188,31 @@ ip_size text,
             
             ip_src_found = get_pktip_src.search(line)
             ip_src = ip_src_found.group(1) if ip_src_found else None
+            ip_src_prt = int(ip_src_found.group(2)) if ip_src_found else None
             
             ip_dst_found = get_pktip_dst.search(line)
             ip_dst = ip_dst_found.group(1) if ip_dst_found else None
+            ip_dst_prt = int(ip_dst_found.group(1)) if ip_dst_found else None            
             
             ip_type_found = get_pktip_type.search(line)
             ip_type = ip_type_found.group(1) if ip_type_found else None
             
             ip_size_found = get_pktip_size.search(line)
-            ip_size = ip_size_found.group(1) if ip_size_found else None
+            ip_size = int(ip_size_found.group(1)) if ip_size_found else None
             
             flowid_found = get_pktip_flwid.search(line)
             flowid = int(flowid_found.group(1)) if flowid_found else None
             
             uniqid_found = get_pktip_unqid.search(line)
             uniqid = int(uniqid_found.group(1)) if uniqid_found else None
+
+            ip_ttl_found = get_pktip_ttl.search(line)
+            ip_ttl = int(ip_ttl_found.group(1)) if ip_ttl_found else None
             
             app_found = get_pkapp_proto.search(line)
             app = app_found.group(1) if app_found else None
             
-            t = (time, int(node_id), tracelvl, event_rsn, ip_src, ip_dst, ip_type, ip_size, flowid, uniqid, app)
+            t = (time, int(node_id), tracelvl, event_rsn, ip_src, ip_src_prt, ip_dst, ip_dst_prt, ip_type, ip_size, flowid, uniqid, ip_ttl, app)
             
             if send_event_found:
                 c.execute(self.insert_send_event, t)
@@ -370,42 +385,18 @@ ip_size text,
         Returns a tuple of three lists of sent, received, dropped packets at level lvl ('MAC','AGT','RTR')
         example: (sent_pkt, recv_pkt, drop_pkt) = parser.get_pkts_at_lvl('MAC')
         """
-        
-        sent_packets = []
-        recv_packets = []
-        drop_packets = []
-        
-        for line in self.input_lines:
-            send_event_found = find_send_event.search(line)
-            recv_event_found = find_recv_event.search(line)
-            drop_event_found = find_drop_event.search(line)
-            
-            if send_event_found != None:
-                tracelvl = get_trace_lvl.search(line)
-                if tracelvl != None and tracelvl.group(1) == lvl:
-                    seqnum = get_pktip_unqid.search(line)
-                    if seqnum != None:
-                        if seqnum.group(1) != None:
-                            sent_packets.append(seqnum.group(1))
-                            continue
-                            
-            if recv_event_found != None:
-                tracelvl = get_trace_lvl.search(line)
-                if tracelvl != None and tracelvl.group(1) == lvl:
-                    seqnum = get_pktip_unqid.search(line)
-                    if seqnum != None:
-                        if seqnum.group(1) != None:
-                            recv_packets.append(seqnum.group(1))
-                            continue
+        c = self.conn.cursor()
+        c.execute("select uniqid from send_events where tracelvl = '%s'" % lvl)
 
-            if drop_event_found != None:
-                tracelvl = get_trace_lvl.search(line)
-                if tracelvl != None and tracelvl.group(1) == lvl:
-                    seqnum = get_pktip_unqid.search(line)
-                    if seqnum != None:
-                        if seqnum.group(1) != None:
-                            drop_packets.append(seqnum.group(1))
-                            continue
+        sent_packets = [uniqid[0] for uniqid in c]
+        
+        c.execute("select uniqid from recv_events where tracelvl = '%s'" % lvl)
+        recv_packets = [uniqid[0] for uniqid in c]
+        
+        c.execute("select uniqid from drop_events where tracelvl = '%s'" % lvl)        
+        drop_packets = [uniqid[0] for uniqid in c]
+
+        c.close()
 
         return (sent_packets, recv_packets, drop_packets)
 
@@ -415,47 +406,17 @@ ip_size text,
         and at level lvl ('MAC','AGT','RTR') default lvl is 'MAC'
         example: (sent_pkt, recv_pkt, drop_pkt) = parser.get_pkts_flowid('MAC')
         """
-        sent_packets = []
-        recv_packets = []
-        drop_packets = []
+        c = self.conn.cursor()
+        c.execute("select uniqid from send_events where tracelvl = '%s' and flowid = %d" % (lvl, flowid))
+        sent_packets = [uniqid[0] for uniqid in c]
         
-        for line in self.input_lines:
-            send_event_found = find_send_event.search(line)
-            recv_event_found = find_recv_event.search(line)
-            drop_event_found = find_drop_event.search(line)            
-            tracelvl_found = get_trace_lvl.search(line)
-            if send_event_found and tracelvl_found:
-                if tracelvl_found.group(1) == lvl:
-                    flwid_found = get_pktip_flwid.search(line)
-                    if flwid_found:
-                        if flwid_found.group(1) == flowid:
-                            seqnum = get_pktip_unqid.search(line)
-                            if seqnum != None:
-                                if seqnum.group(1) != None:
-                                    sent_packets.append(seqnum.group(1))
+        c.execute("select uniqid from recv_events where tracelvl = '%s' and flowid = %d" % (lvl, flowid))
+        recv_packets = [uniqid[0] for uniqid in c]
+        
+        c.execute("select uniqid from drop_events where tracelvl = '%s' and flowid = %d" % (lvl, flowid))
+        drop_packets = [uniqid[0] for uniqid in c]
 
-            if recv_event_found != None:
-                tracelvl = get_trace_lvl.search(line)
-                if tracelvl != None and tracelvl.group(1) == lvl:
-                    flwid = get_pktip_flwid.search(line)
-                    if flwid != None:
-                        if flwid.group(1) == flowid:
-                            seqnum = get_pktip_unqid.search(line)
-                            if seqnum != None:
-                                if seqnum.group(1) != None:
-                                    recv_packets.append(seqnum.group(1))
-
-            if drop_event_found != None:
-                tracelvl = get_trace_lvl.search(line)
-                if tracelvl != None and tracelvl.group(1) == lvl:
-                    flwid = get_pktip_flwid.search(line)
-                    if flwid != None:
-                        if flwid.group(1) == flowid:
-                            seqnum = get_pktip_unqid.search(line)
-                            if seqnum != None:
-                                if seqnum.group(1) != None:
-                                    drop_packets.append(seqnum.group(1))
-
+        c.close()
         return (sent_packets, recv_packets, drop_packets)
 
     def get_trace_maconly_pkts(self):
