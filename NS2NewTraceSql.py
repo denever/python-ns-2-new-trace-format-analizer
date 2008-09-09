@@ -435,7 +435,7 @@ class NS2NewTraceSql:
 
         return (sent_macpkt, recv_macpkt, drop_macpkt)
 
-    def get_sent_pkts_times_at(self, node_id, flow_id, lvl = 'MAC'):
+    def get_sent_pkts_times_at(self, node_id, flow_id, lvl = 'AGT'):
         """Gets sent pkts times"""
         c = self.conn.cursor()
 
@@ -446,7 +446,7 @@ class NS2NewTraceSql:
             
         return sent_times
 
-    def get_recv_pkts_times_at(self, node_id, flow_id, lvl = 'MAC'):
+    def get_recv_pkts_times_at(self, node_id, flow_id, lvl = 'AGT'):
         c = self.conn.cursor()
 
         c.execute("select uniqid,time from recv_events where uniqid not null and nodeid = %d and flowid = %d and tracelvl = '%s'" % (node_id, flow_id, lvl))
