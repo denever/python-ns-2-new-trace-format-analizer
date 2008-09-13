@@ -3,9 +3,8 @@ from decimal import Decimal
 from NS2NewTraceSql import NS2NewTraceSql
 
 class NetStats:
-    def __init__(self, db):
-        self.db = NS2NewTraceSql(db)
-
+    def __init__(self, db, input_file):
+        self.db = NS2NewTraceSql(db, input_file)
     
     def avg_stats(self, ip_src, ip_dst, flow_id, hdr_size):
         avg_tput, avg_delay, avg_jitter = 0,0,0
@@ -71,12 +70,16 @@ class NetStats:
     
 if __name__ == '__main__':
     if len(sys.argv) == 2:
-        input_file = sys.argv[1]
+        db = sys.argv[1]
+        input_file = None
+    elif len(sys.argv) == 3:
+        db = sys.argv[1]
+        input_file = sys.argv[2]
     else:
-        print "usage thsql.py file.pta"
+        print "usage thsql.py file.pta [tracefile.tr]"
         sys.exit(1)
 
-    mio = NetStats(input_file)
+    mio = NetStats(db, input_file)
         
     (avg_tput, avg_delay, avg_jitter) = mio.avg_stats(1,0,1,20)
 
