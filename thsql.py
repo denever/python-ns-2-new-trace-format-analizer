@@ -1,3 +1,29 @@
+#! /usr/bin/env python
+# -*- Python -*-
+###########################################################################
+#                       Trace Analizer Example                            #
+#                        --------------------                             #
+#  copyright         (C) 2008  Giuseppe "denever" Martino                 #
+#  email                : denever@users.sf.net                            #
+###########################################################################
+###########################################################################
+#                                                                         #
+#   This program is free software; you can redistribute it and/or modify  #
+#   it under the terms of the GNU General Public License as published by  #
+#   the Free Software Foundation; either version 2 of the License, or     #
+#   (at your option) any later version.                                   #
+#                                                                         #
+#  This program is distributed in the hope that it will be useful,        #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of         #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          #
+#  GNU General Public License for more details.                           #
+#                                                                         #
+#  You should have received a copy of the GNU General Public License      #
+#  along with this program; if not, write to the Free Software            #
+#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA#
+#                                                                         #
+###########################################################################
+
 import sys
 from decimal import Decimal
 from NS2NewTraceSql import NS2NewTraceSql
@@ -13,15 +39,7 @@ class NetStats:
         recv_pkts = self.db.get_recv_pkts_times_at(ip_dst, flow_id)
 
         start_time = Decimal(sent_pkts[0][1])
-
-        last_sent_pkt_id = sent_pkts[-1][0]
-        last_recv_pkt_id = recv_pkts[-1][0]
-
-        if last_recv_pkt_id == last_sent_pkt_id:
-            stop_time = Decimal(recv_pkts[-1][1])
-        else:
-            print 'Packets not received in sequence'
-            sys.exit(1)
+        stop_time = Decimal(recv_pkts[-1][1])                
 
         delta = stop_time - start_time
         data_size = Decimal(self.db.get_recv_flow_total_size_at(ip_dst, flow_id, hdr_size))
