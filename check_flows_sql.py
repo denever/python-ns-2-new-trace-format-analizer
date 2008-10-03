@@ -34,11 +34,15 @@ def save_lines_in(filename, lines):
 
 if __name__ == '__main__':
     if len(sys.argv) == 2:
-        input_file = sys.argv[1]
-    else:
+        db = sys.argv[1]
         input_file = None
-
-    parser = NS2NewTraceSql('prova.db', input_file)
+    elif len(sys.argv) == 3:
+        db = sys.argv[1]
+        input_file = sys.argv[2]
+    else:
+        print "usage: check_flows_sql.py file.pta [file.tr]"
+        
+    parser = NS2NewTraceSql(db, input_file)
 
     for flowid  in range(0,12):
         print "Checking flow: ", flowid, "..."
